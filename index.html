@@ -1800,6 +1800,54 @@ function renderPattern(pattern) {
     rolesDiv.appendChild(label);
   });
   
+  const patternView = document.getElementById('pattern-view');
+  let controlsDiv = document.getElementById('pattern-controls');
+  if (!controlsDiv) {
+    controlsDiv = document.createElement('div');
+    controlsDiv.id = 'pattern-controls';
+    controlsDiv.style.display = 'flex';
+    controlsDiv.style.gap = '8px';
+    controlsDiv.style.padding = '8px';
+    controlsDiv.style.borderBottom = '1px solid #222';
+    for (let c = 0; c < 4; c++) {
+      const chDiv = document.createElement('div');
+      chDiv.style.flex = '1';
+      chDiv.style.display = 'flex';
+      chDiv.style.flexDirection = 'column';
+      chDiv.style.alignItems = 'center';
+      chDiv.style.gap = '4px';
+      const label = document.createElement('div');
+      label.textContent = song.channelRoles[c];
+      label.style.color = '#0a0';
+      label.style.fontSize = '10px';
+      chDiv.appendChild(label);
+      const select = document.createElement('select');
+      select.style.width = '100%';
+      select.style.background = '#222';
+      select.style.color = '#0ff';
+      select.style.border = '1px solid #444';
+      select.style.fontSize = '10px';
+      select.style.padding = '2px';
+      const options = ['none', 'every 2', 'every 4', 'every 8', '4/4 kick', '4/4 snare', '4/4 hat'];
+      options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        select.appendChild(option);
+      });
+      chDiv.appendChild(select);
+      const applyBtn = document.createElement('button');
+      applyBtn.textContent = 'APPLY';
+      applyBtn.style.padding = '2px 4px';
+      applyBtn.style.fontSize = '10px';
+      applyBtn.style.minHeight = '20px';
+      applyBtn.addEventListener('click', () => applyDistribution(c, select.value));
+      chDiv.appendChild(applyBtn);
+      controlsDiv.appendChild(chDiv);
+    }
+    patternView.insertBefore(controlsDiv, grid);
+  }
+  
   grid.innerHTML = '';
   
   for (let r = 0; r < pattern.rows; r++) {
@@ -1854,6 +1902,31 @@ function renderPattern(pattern) {
     
     grid.appendChild(rowEl);
   }
+}
+
+function applyDistribution(chIdx, type) {
+  const pattern = getCurrentPattern();
+  const role = song.channelRoles[chIdx];
+  let sample = 'kick'; // default
+  if (role === 'KICK') sample = 'kick';
+  else if (role === 'DRUMS') sample = 'snare';
+  else if (role === 'BASS') sample = 'string';
+  else sample = 'hat';
+  
+  for (let r = 0; r < pattern.rows; r++) {
+    let place = false;
+    if (type === 'every 2' && r % 2 === 0) place = true;
+    else if (type === 'every 4' && r % 4 === 0) place = true;
+    else if (type === 'every 8' && r % 8 === 0) place = true;
+    else if (type === '4/4 kick' && r % 4 === 0) place = true;
+    else if (type === '4/4 snare' && r % 8 === 4) place = true;
+    else if (type === '4/4 hat' && r % 2 === 0) place = true;
+    
+    if (place) {
+      pattern.data[r][chIdx] = { note: 'C-4', sample: sample, volume: 1.0, effects: [] };
+    }
+  }
+  renderPattern(pattern);
 }
 
 function renderArrangement() {

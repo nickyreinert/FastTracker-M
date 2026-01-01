@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mobile Tracker</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #000;
+  color: #0f0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#topbar {
+  background: #111;
+  padding: 12px;
+  border-bottom: 2px solid #0f0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+button {
+  background: #222;
+  color: #0f0;
+  border: 1px solid #0f0;
+  padding: 12px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  min-height: 44px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:active {
+  background: #0f0;
+  color: #000;
+}
+
+button.active {
+  background: #0a0;
+  color: #000;
+}
+
+button.loop-active {
+  background: #00a;
+  color: #fff;
+  border-color: #00f;
+}
+
+button.recording {
+  background: #f00;
+  color: #fff;
+  border-color: #f00;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+#status {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 12px;
+  gap: 12px;
+}
+
+#led-meter {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  padding: 4px 8px;
+  background: #000;
+  border: 1px solid #0a0;
+  border-radius: 2px;
+}
+
+.led {
+  width: 8px;
+  height: 24px;
+  background: #111;
+  border: 1px solid #222;
+  transition: none;
+}
+
+.led.on[data-color="green"] {
+  background: #0f0;
+  border-color: #0f0;
+  box-shadow: 0 0 4px #0f0;
+}
+
+.led.on[data-color="yellow"] {
+  background: #ff0;
+  border-color: #ff0;
+  box-shadow: 0 0 4px #ff0;
+}
+
+.led.on[data-color="red"] {
+  background: #f00;
+  border-color: #f00;
+  box-shadow: 0 0 4px #f00;
+}
+
+#view-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#arrangement-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  overflow-y: scroll;
+  display: none;
+}
+
+#arrangement-view.visible {
+  display: block;
+}
+
+#arrangement-grid {
+  padding: 8px;
+}
+
+.arrangement-row {
+  display: flex;
+  min-height: 60px;
+  border-bottom: 1px solid #222;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+}
+
+.arrangement-num {
+  width: 40px;
+  text-align: right;
+  padding-right: 8px;
+  color: #666;
+  font-size: 11px;
+}
+
+.arrangement-pattern {
+  flex: 1;
+  background: #222;
+  border: 2px solid #444;
+  padding: 12px;
+  text-align: center;
+  color: #0ff;
+  font-size: 14px;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.arrangement-pattern.playing {
+  border-color: #0f0;
+  background: #1a1a00;
+}
+
+.arrangement-pattern:active {
+  background: #333;
+}
+
+.pattern-label {
+  font-size: 10px;
+  color: #0a0;
+  position: absolute;
+  top: 2px;
+  left: 4px;
+}
+
+.pattern-energy {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 10px;
+  color: #f80;
+}
+
+.pattern-mutes {
+  position: absolute;
+  bottom: 2px;
+  left: 4px;
+  font-size: 9px;
+  color: #f00;
+}
+
+#pattern-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  overflow-y: scroll;
+  display: none;
+}
+
+#pattern-view.visible {
+  display: block;
+}
+
+#pattern-header {
+  background: #111;
+  padding: 12px;
+  border-bottom: 1px solid #0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#pattern-title {
+  color: #0ff;
+  font-size: 14px;
+  flex: 1;
+}
+
+.channel-roles {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  font-size: 10px;
+  color: #0a0;
+  border-top: 1px solid #222;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.role-label {
+  flex: 1;
+  text-align: center;
+  padding: 4px;
+  background: #0a0a00;
+  border: 1px solid #444;
+}
+
+#pattern-grid {
+  padding: 8px;
+  min-height: 100%;
+}
+
+.row {
+  display: flex;
+  min-height: 48px;
+  border-bottom: 1px solid #222;
+  align-items: center;
+}
+
+.row.playing {
+  background: #1a1a00;
+}
+
+.row.loop-start {
+  border-top: 2px solid #00f;
+}
+
+.row.loop-end {
+  border-bottom: 2px solid #00f;
+}
+
+.row.in-loop {
+  background: #000a1a;
+}
+
+.row-num {
+  width: 40px;
+  text-align: right;
+  padding-right: 8px;
+  color: #666;
+  font-size: 11px;
+}
+
+.channel {
+  flex: 1;
+  padding: 4px 8px;
+  border-left: 1px solid #222;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  flex-direction: column;
+}
+
+.channel:active {
+  background: #333;
+}
+
+.channel.note {
+  color: #0ff;
+}
+
+.channel.empty {
+  color: #333;
+}
+
+.channel.selected {
+  background: #004400;
+  border: 1px solid #0f0;
+}
+
+.cell-note {
+  font-size: 13px;
+}
+
+.cell-fx {
+  font-size: 9px;
+  color: #f80;
+  margin-top: 2px;
+}
+
+#edit-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #111;
+  border-top: 2px solid #0f0;
+  padding: 12px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 70vh;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+#edit-panel.visible {
+  display: flex;
+}
+
+.edit-section {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.edit-label {
+  width: 100%;
+  color: #0a0;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.sample-btn {
+  flex: 1;
+  min-width: 80px;
+}
+
+#close-edit {
+  background: #440000;
+  border-color: #f00;
+  color: #f00;
+}
+
+#sample-list, #voice-list {
+  max-height: 150px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sample-item {
+  background: #222;
+  border: 1px solid #444;
+  padding: 8px;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sample-name {
+  color: #0ff;
+  flex: 1;
+}
+
+.sample-info {
+  color: #666;
+  font-size: 10px;
+  margin-left: 8px;
+}
+
+.voice-sample-item {
+  border-color: #f0f;
+}
+
+.voice-sample-name {
+  color: #f0f;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+#load-sample-label {
+  background: #222;
+  color: #ff0;
+  border: 1px solid #ff0;
+  padding: 12px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  min-height: 44px;
+  cursor: pointer;
+  touch-action: manipulation;
+  display: inline-block;
+  text-align: center;
+}
+
+#load-sample-label:active {
+  background: #ff0;
+  color: #000;
+}
+
+input[type="range"] {
+  flex: 1;
+  min-width: 100px;
+}
+
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.param-label {
+  min-width: 80px;
+  font-size: 11px;
+}
+
+.param-value {
+  min-width: 40px;
+  text-align: right;
+  color: #0ff;
+}
+
+#record-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  flex-direction: column;
+  gap: 20px;
+}
+
+#record-overlay.visible {
+  display: flex;
+}
+
+#effects-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  display: none;
+  z-index: 1500;
+  overflow-y: auto;
+}
+
+#effects-modal.visible {
+  display: block;
+}
+
+#effects-modal-content {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #0f0;
+}
+
+.modal-title {
+  font-size: 18px;
+  color: #0ff;
+}
+
+.effect-slot {
+  background: #111;
+  border: 1px solid #444;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 4px;
+}
+
+.effect-slot.active {
+  border-color: #0f0;
+  background: #0a0a00;
+}
+
+.effect-slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.effect-slot-label {
+  color: #0a0;
+  font-size: 12px;
+}
+
+.effect-slot-remove {
+  background: #440000;
+  border-color: #f00;
+  color: #f00;
+  padding: 4px 12px;
+  min-height: 32px;
+  font-size: 12px;
+}
+
+.effect-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.effect-type-btn {
+  padding: 8px;
+  min-height: 40px;
+  font-size: 12px;
+}
+
+.effect-type-btn.selected {
+  background: #0a0;
+  color: #000;
+}
+
+#record-time {
+  font-size: 48px;
+  color: #f00;
+}
+
+#record-controls {
+  display: flex;
+  gap: 12px;
+}
+
+#waveform-canvas {
+  width: 90%;
+  height: 120px;
+  border: 1px solid #0f0;
+}
+
+#arrangement-menu {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #111;
+  border-top: 2px solid #0f0;
+  padding: 12px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+#arrangement-menu.visible {
+  display: flex;
+}
+</style>
+</head>
+<body>
+
+<div id="record-overlay">
+  <div id="record-time">00:00</div>
+  <canvas id="waveform-canvas"></canvas>
+  <div id="record-controls">
+    <button id="stop-record-btn">STOP</button>
+    <button id="cancel-record-btn">CANCEL</button>
+  </div>
+</div>
+
+<div id="effects-modal">
+  <div id="effects-modal-content">
+    <div class="modal-header">
+      <span class="modal-title">EFFECTS STACK</span>
+      <button id="close-effects-modal">CLOSE</button>
+    </div>
+    <div id="effects-stack"></div>
+    <div class="edit-section" style="margin-top: 20px;">
+      <button id="add-effect-slot">+ ADD EFFECT</button>
+    </div>
+  </div>
+</div>
+
+<div id="container">
+  <div id="topbar">
+    <button id="play-btn">PLAY</button>
+    <button id="stop-btn">STOP</button>
+    <button id="loop-btn">LOOP</button>
+    <button id="view-toggle-btn">ARRANGE</button>
+    <button id="gen-drums-btn">DRUMS</button>
+    <button id="record-btn">REC MIC</button>
+    <label id="load-sample-label" for="load-sample">LOAD</label>
+    <input type="file" id="load-sample" accept="audio/wav,audio/wave,audio/x-wav">
+    <div id="status">
+      <div id="led-meter"></div>
+      <div>
+        <span id="view-mode">PATTERN</span> | 
+        BPM: <span id="bpm">125</span> | 
+        POS: <span id="song-pos">00</span> | 
+        ROW: <span id="row">--</span>
+      </div>
+    </div>
+  </div>
+  
+  <div id="view-container">
+    <div id="arrangement-view">
+      <div id="arrangement-grid"></div>
+    </div>
+
+    <div id="pattern-view" class="visible">
+      <div id="pattern-header">
+        <span id="pattern-title">PATTERN 00</span>
+        <button id="back-to-arrange" style="display:none;">BACK</button>
+      </div>
+      <div id="pattern-grid"></div>
+    </div>
+  </div>
+
+  <div id="edit-panel">
+    <div class="edit-label">SELECTED: ROW <span id="edit-row">--</span> CH <span id="edit-ch">--</span></div>
+    
+    <div class="edit-section">
+      <div class="edit-label">BUILT-IN SAMPLES:</div>
+      <button class="sample-btn" data-sample="kick">KICK</button>
+      <button class="sample-btn" data-sample="snare">SNARE</button>
+      <button class="sample-btn" data-sample="hat">HAT</button>
+      <button class="sample-btn" data-sample="string">STRING</button>
+      <button class="sample-btn" data-sample="clear">CLEAR</button>
+    </div>
+
+    <div class="edit-section" id="voice-section" style="display:none;">
+      <div class="edit-label">VOICE RECORDINGS:</div>
+      <div id="voice-list"></div>
+    </div>
+
+    <div class="edit-section" id="imported-section" style="display:none;">
+      <div class="edit-label">IMPORTED SAMPLES:</div>
+      <div id="sample-list"></div>
+    </div>
+
+    <div class="edit-section">
+      <div class="edit-label">EFFECTS:</div>
+      <button id="open-effects-modal">EDIT EFFECTS</button>
+    </div>
+
+    <div class="edit-section">
+      <button id="test-sample">TEST</button>
+      <button id="set-loop-start">LOOP START</button>
+      <button id="set-loop-end">LOOP END</button>
+      <button id="close-edit">CLOSE</button>
+    </div>
+  </div>
+
+  <div id="arrangement-menu">
+    <div class="edit-label">POSITION <span id="arrange-pos">00</span></div>
+    
+    <div class="edit-section">
+      <div class="edit-label">ASSIGN PATTERN:</div>
+      <button class="assign-pattern-btn" data-pattern="0">PTN 00</button>
+      <button class="assign-pattern-btn" data-pattern="1">PTN 01</button>
+      <button class="assign-pattern-btn" data-pattern="2">PTN 02</button>
+      <button class="assign-pattern-btn" data-pattern="3">PTN 03</button>
+    </div>
+
+    <div class="edit-section">
+      <div class="edit-label">ROLE MUTES:</div>
+      <button class="mute-role-btn" data-role="KICK">KICK</button>
+      <button class="mute-role-btn" data-role="DRUMS">DRUMS</button>
+      <button class="mute-role-btn" data-role="BASS">BASS</button>
+      <button class="mute-role-btn" data-role="PAD">PAD</button>
+    </div>
+
+    <div class="edit-section">
+      <div class="edit-label">ARRANGEMENT MACROS:</div>
+      <button id="macro-repeat">REPEAT BLOCK</button>
+      <button id="macro-pause-full">INSERT SILENCE</button>
+      <button id="macro-pause-nokick">PAUSE (NO KICK)</button>
+      <button id="macro-drop">DROP BUILDER</button>
+    </div>
+
+    <div class="edit-section">
+      <button id="duplicate-pos">DUPLICATE</button>
+      <button id="clear-pos">CLEAR</button>
+      <button id="insert-pos">INSERT</button>
+      <button id="delete-pos">DELETE</button>
+    </div>
+
+    <div class="edit-section">
+      <button id="close-arrange-menu">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// AUDIO ENGINE
+// ============================================================================
+
+let audioCtx = null;
+let masterGain = null;
+let analyser = null;
+let dataArray = null;
+
+const samples = {};
+const importedSamples = [];
+const voiceSamples = [];
+
+const roleGains = {
+  'KICK': 0.9,
+  'DRUMS': 0.6,
+  'BASS': 0.7,
+  'PAD': 0.4
+};
+
+
+
+document.body.addEventListener("touchstart", () => {
+  if (audioCtx && audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+}, { once: true });
+
+function initAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
+
+  // Master gain + analyser for LED meter
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.8;
+  
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 256;
+  analyser.smoothingTimeConstant = 0.3;
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
+  
+  // Route: masterGain → analyser → destination
+  masterGain.connect(analyser);
+  analyser.connect(audioCtx.destination);
+  
+  initLedMeter();
+
+  console.log('[Audio] Init:', audioCtx.state);
+}
+
+
+
+function initAudioOnce() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.connect(audioCtx.destination);
+}
+
+function initLedMeter() {
+  const meter = document.getElementById('led-meter');
+  meter.innerHTML = '';
+
+  const leds = [];
+  const colors = ['green','green','green','yellow','yellow','red'];
+
+  for (let i = 0; i < colors.length; i++) {
+    const led = document.createElement('div');
+    led.className = 'led';
+    led.dataset.color = colors[i];
+    meter.appendChild(led);
+    leds.push(led);
+  }
+
+  function tick() {
+    if (analyser) {
+      analyser.getByteFrequencyData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < 8; i++) sum += dataArray[i];
+      const level = sum / 8 / 255;
+
+      const active = Math.round(level * leds.length);
+      leds.forEach((l, i) =>
+        l.classList.toggle('on', i < active)
+      );
+    }
+    requestAnimationFrame(tick);
+  }
+
+  tick();
+}
+
+
+function ensureAudioRunning() {
+  if (!audioCtx) return false;
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+    return false;
+  }
+  return audioCtx.state === 'running';
+}
+
+async function generateKick() {
+  const sr = 22050;
+  const dur = 0.5;
+  const ctx = new OfflineAudioContext(1, sr * dur, sr);
+  
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  
+  osc.frequency.setValueAtTime(150, 0);
+  osc.frequency.exponentialRampToValueAtTime(40, 0.1);
+  gain.gain.setValueAtTime(1, 0);
+  gain.gain.exponentialRampToValueAtTime(0.01, 0.5);
+  
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(0);
+  osc.stop(0.5);
+  
+  return await ctx.startRendering();
+}
+
+async function generateSnare() {
+  const sr = 22050;
+  const dur = 0.2;
+  const ctx = new OfflineAudioContext(1, sr * dur, sr);
+  
+  const buf = ctx.createBuffer(1, sr * dur, sr);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  
+  const noise = ctx.createBufferSource();
+  noise.buffer = buf;
+  
+  const filt = ctx.createBiquadFilter();
+  filt.type = 'bandpass';
+  filt.frequency.value = 200;
+  
+  const osc = ctx.createOscillator();
+  osc.frequency.value = 180;
+  
+  const oscGain = ctx.createGain();
+  oscGain.gain.setValueAtTime(0.3, 0);
+  oscGain.gain.exponentialRampToValueAtTime(0.01, 0.05);
+  
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.8, 0);
+  gain.gain.exponentialRampToValueAtTime(0.01, 0.2);
+  
+  noise.connect(filt);
+  filt.connect(gain);
+  osc.connect(oscGain);
+  oscGain.connect(gain);
+  gain.connect(ctx.destination);
+  
+  noise.start(0);
+  osc.start(0);
+  osc.stop(0.05);
+  
+  return await ctx.startRendering();
+}
+
+async function generateHat() {
+  const sr = 22050;
+  const dur = 0.08;
+  const ctx = new OfflineAudioContext(1, sr * dur, sr);
+  
+  const buf = ctx.createBuffer(1, sr * dur, sr);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  
+  const noise = ctx.createBufferSource();
+  noise.buffer = buf;
+  
+  const filt = ctx.createBiquadFilter();
+  filt.type = 'highpass';
+  filt.frequency.value = 7000;
+  
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.5, 0);
+  gain.gain.exponentialRampToValueAtTime(0.01, 0.08);
+  
+  noise.connect(filt);
+  filt.connect(gain);
+  gain.connect(ctx.destination);
+  noise.start(0);
+  
+  return await ctx.startRendering();
+}
+
+async function generateString() {
+  const sr = 22050;
+  const dur = 2.0;
+  const ctx = new OfflineAudioContext(1, sr * dur, sr);
+  
+  const oscs = [];
+  const detunes = [0, -7, 5];
+  
+  for (let i = 0; i < 3; i++) {
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = 220;
+    osc.detune.value = detunes[i];
+    oscs.push(osc);
+  }
+  
+  const mix = ctx.createGain();
+  mix.gain.value = 0.33;
+  oscs.forEach(o => o.connect(mix));
+  
+  const filt = ctx.createBiquadFilter();
+  filt.type = 'lowpass';
+  filt.frequency.value = 1200;
+  mix.connect(filt);
+  
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, 0);
+  env.gain.linearRampToValueAtTime(1.0, 0.2);
+  env.gain.setValueAtTime(0.8, dur - 0.5);
+  env.gain.linearRampToValueAtTime(0.01, dur);
+  
+  filt.connect(env);
+  env.connect(ctx.destination);
+  
+  oscs.forEach(o => {
+    o.start(0);
+    o.stop(dur);
+  });
+  
+  return await ctx.startRendering();
+}
+
+async function generateAllDrums() {
+  samples.kick = await generateKick();
+  samples.snare = await generateSnare();
+  samples.hat = await generateHat();
+  samples.string = await generateString();
+  console.log('[Audio] Drums generated');
+}
+
+async function loadWAV(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  let audioBuffer;
+  try {
+    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  } catch (err) {
+    console.error('[Audio] Decode failed:', err);
+    throw new Error('Invalid audio file');
+  }
+  
+  const baseName = file.name.replace(/\.[^/.]+$/, '').substring(0, 8);
+  let name = baseName;
+  let counter = 1;
+  
+  while (samples[name] || importedSamples.find(s => s.name === name)) {
+    name = baseName + counter;
+    counter++;
+  }
+  
+  samples[name] = audioBuffer;
+  importedSamples.push({
+    name: name,
+    buffer: audioBuffer,
+    duration: audioBuffer.duration,
+    sampleRate: audioBuffer.sampleRate
+  });
+  
+  updateSampleList();
+  return name;
+}
+
+function updateSampleList() {
+  const list = document.getElementById('sample-list');
+  const section = document.getElementById('imported-section');
+  
+  if (importedSamples.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  
+  section.style.display = 'flex';
+  list.innerHTML = '';
+  
+  importedSamples.forEach(sample => {
+    const item = document.createElement('div');
+    item.className = 'sample-item';
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'sample-name';
+    nameSpan.textContent = sample.name;
+    
+    const infoSpan = document.createElement('span');
+    infoSpan.className = 'sample-info';
+    infoSpan.textContent = `${sample.duration.toFixed(2)}s`;
+    
+    const useBtn = document.createElement('button');
+    useBtn.textContent = 'USE';
+    useBtn.style.marginLeft = '8px';
+    useBtn.style.padding = '4px 12px';
+    useBtn.style.minHeight = '32px';
+    useBtn.addEventListener('click', () => setSample(sample.name));
+    
+    item.appendChild(nameSpan);
+    item.appendChild(infoSpan);
+    item.appendChild(useBtn);
+    list.appendChild(item);
+  });
+}
+
+function updateVoiceList() {
+  const list = document.getElementById('voice-list');
+  const section = document.getElementById('voice-section');
+  
+  if (voiceSamples.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  
+  section.style.display = 'flex';
+  list.innerHTML = '';
+  
+  voiceSamples.forEach(sample => {
+    const item = document.createElement('div');
+    item.className = 'sample-item voice-sample-item';
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'sample-name voice-sample-name';
+    nameSpan.textContent = sample.name;
+    
+    const infoSpan = document.createElement('span');
+    infoSpan.className = 'sample-info';
+    infoSpan.textContent = `${sample.duration.toFixed(2)}s`;
+    
+    const useBtn = document.createElement('button');
+    useBtn.textContent = 'USE';
+    useBtn.style.marginLeft = '8px';
+    useBtn.style.padding = '4px 12px';
+    useBtn.style.minHeight = '32px';
+    useBtn.addEventListener('click', () => setSample(sample.name));
+    
+    item.appendChild(nameSpan);
+    item.appendChild(infoSpan);
+    item.appendChild(useBtn);
+    list.appendChild(item);
+  });
+}
+
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordStartTime = 0;
+let recordTimerInterval = null;
+
+async function startRecording() {
+  if (!ensureAudioRunning()) {
+    alert('Audio not ready');
+    return;
+  }
+  
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    recordedChunks = [];
+    
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) recordedChunks.push(e.data);
+    };
+    
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(track => track.stop());
+      await processRecording();
+    };
+    
+    mediaRecorder.start();
+    recordStartTime = Date.now();
+    document.getElementById('record-overlay').classList.add('visible');
+    document.getElementById('record-btn').classList.add('recording');
+    recordTimerInterval = setInterval(updateRecordTimer, 100);
+  } catch (err) {
+    alert('Microphone denied: ' + err.message);
+  }
+}
+
+function updateRecordTimer() {
+  const elapsed = (Date.now() - recordStartTime) / 1000;
+  const mins = Math.floor(elapsed / 60);
+  const secs = Math.floor(elapsed % 60);
+  document.getElementById('record-time').textContent = 
+    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    clearInterval(recordTimerInterval);
+    document.getElementById('record-btn').classList.remove('recording');
+  }
+}
+
+function cancelRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    recordedChunks = [];
+  }
+  clearInterval(recordTimerInterval);
+  document.getElementById('record-overlay').classList.remove('visible');
+  document.getElementById('record-btn').classList.remove('recording');
+}
+
+async function processRecording() {
+  const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+  const arrayBuffer = await blob.arrayBuffer();
+  
+  let audioBuffer;
+  try {
+    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  } catch (err) {
+    alert('Recording decode failed');
+    document.getElementById('record-overlay').classList.remove('visible');
+    return;
+  }
+  
+  let name = 'voice';
+  let counter = 1;
+  while (samples[name] || voiceSamples.find(s => s.name === name)) {
+    name = 'voice' + counter;
+    counter++;
+  }
+  
+  samples[name] = audioBuffer;
+  voiceSamples.push({
+    name: name,
+    buffer: audioBuffer,
+    duration: audioBuffer.duration,
+    sampleRate: audioBuffer.sampleRate
+  });
+  
+  updateVoiceList();
+  drawWaveform(audioBuffer);
+  
+  setTimeout(() => {
+    document.getElementById('record-overlay').classList.remove('visible');
+  }, 2000);
+}
+
+function drawWaveform(buffer) {
+  const canvas = document.getElementById('waveform-canvas');
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width = canvas.offsetWidth;
+  const height = canvas.height = canvas.offsetHeight;
+  
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, width, height);
+  
+  const data = buffer.getChannelData(0);
+  const step = Math.ceil(data.length / width);
+  const amp = height / 2;
+  
+  ctx.strokeStyle = '#0f0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  
+  for (let i = 0; i < width; i++) {
+    const slice = data.slice(i * step, (i + 1) * step);
+    const min = Math.min(...slice);
+    const max = Math.max(...slice);
+    ctx.moveTo(i, (1 + min) * amp);
+    ctx.lineTo(i, (1 + max) * amp);
+  }
+  
+  ctx.stroke();
+}
+
+function reverseBuffer(buf) {
+  if (!audioCtx) return buf;
+  const rev = audioCtx.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const inp = buf.getChannelData(ch);
+    const out = rev.getChannelData(ch);
+    for (let i = 0; i < buf.length; i++) {
+      out[i] = inp[buf.length - 1 - i];
+    }
+  }
+  return rev;
+}
+
+function playSample(name, time, cell, chIdx) {
+  if (!samples[name]) return;
+  
+  let buf = samples[name];
+  const vol = cell.volume || 1.0;
+  const fx = cell.effects || [];
+  
+  const role = song.channelRoles[chIdx] || 'PAD';
+  const roleGain = roleGains[role] || 0.5;
+  const finalVol = vol * roleGain;
+  
+  if (fx.some(f => f.type === 'reverse')) {
+    buf = reverseBuffer(buf);
+  }
+  
+  const src = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  
+  src.buffer = buf;
+  gain.gain.value = finalVol;
+  
+  fx.forEach(f => {
+    const p = f.param || 0;
+    switch (f.type) {
+      case 'slide':
+        src.detune.value = (p - 128) * 10;
+        break;
+      case 'arp':
+        const steps = [0, p * 100, p * 200];
+        for (let i = 0; i < 3; i++) {
+          src.detune.setValueAtTime(steps[i % steps.length], time + i * 0.05);
+        }
+        break;
+      case 'vibrato':
+        const lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = p * 2;
+        lfo.frequency.value = 6;
+        lfo.connect(lfoGain);
+        lfoGain.connect(src.detune);
+        lfo.start(time);
+        lfo.stop(time + buf.duration);
+        break;
+      case 'vol':
+        const targetVol = (p / 255) * finalVol;
+        gain.gain.setValueAtTime(finalVol, time);
+        gain.gain.linearRampToValueAtTime(targetVol, time + buf.duration);
+        break;
+      case 'cut':
+        const ct = (p / 255) * buf.duration;
+        gain.gain.setValueAtTime(finalVol, time);
+        gain.gain.setValueAtTime(0, time + ct + 0.001);
+        break;
+      case 'retrig':
+        if (p > 0) {
+          const interval = 0.05 + (p / 255) * 0.2;
+          const retrigs = Math.floor(buf.duration / interval);
+          for (let i = 1; i <= retrigs; i++) {
+            const rs = audioCtx.createBufferSource();
+            const rg = audioCtx.createGain();
+            rs.buffer = buf;
+            rg.gain.value = finalVol * (1 - i / retrigs);
+            rs.connect(rg);
+            rg.connect(masterGain);
+            rs.start(time + i * interval);
+          }
+        }
+        break;
+    }
+  });
+  
+  src.connect(gain);
+  gain.connect(masterGain); // Route to master instead of direct destination
+  src.start(time);
+}
+
+// ============================================================================
+// SONG STRUCTURE
+// ============================================================================
+
+const song = {
+  patterns: [],
+  arrangement: [],
+  currentPosition: 0,
+  patternMeta: [],
+  channelRoles: ["KICK", "DRUMS", "BASS", "PAD"]
+};
+
+function createEmptyPattern() {
+  const p = { channels: 4, rows: 64, data: [] };
+  for (let r = 0; r < 64; r++) {
+    const row = [];
+    for (let c = 0; c < 4; c++) row.push(null);
+    p.data.push(row);
+  }
+  return p;
+}
+
+function initSong() {
+  const meta = [
+    { name: "INTRO", energy: 1 },
+    { name: "GROOVE", energy: 2 },
+    { name: "VARIATION", energy: 2 },
+    { name: "BREAK", energy: 0 }
+  ];
+  
+  for (let i = 0; i < 4; i++) {
+    song.patterns.push(createEmptyPattern());
+    song.patternMeta.push(meta[i]);
+  }
+  
+  song.arrangement = [
+    { pattern: 0, mutes: [] },
+    { pattern: 0, mutes: [] },
+    { pattern: 1, mutes: [] },
+    { pattern: 1, mutes: [] }
+  ];
+  
+  const p0 = song.patterns[0];
+  for (let r = 0; r < 64; r += 4) {
+    p0.data[r][0] = { note: 'C-4', sample: 'kick', volume: 1.0, effects: [] };
+  }
+  for (let r = 4; r < 64; r += 8) {
+    p0.data[r][1] = { note: 'C-4', sample: 'snare', volume: 0.8, effects: [] };
+  }
+  for (let r = 0; r < 64; r += 2) {
+    p0.data[r][2] = { note: 'C-4', sample: 'hat', volume: 0.5, effects: [] };
+  }
+  
+  // Add string pad in pattern 0 on channel 3
+  for (let r = 0; r < 64; r += 16) {
+    p0.data[r][3] = { note: 'C-4', sample: 'string', volume: 0.6, effects: [] };
+  }
+}
+
+function getCurrentPattern() {
+  const entry = song.arrangement[song.currentPosition];
+  const idx = typeof entry === 'number' ? entry : entry.pattern;
+  return song.patterns[idx] || song.patterns[0];
+}
+
+function isRoleMuted(chIdx) {
+  const entry = song.arrangement[song.currentPosition];
+  const mutes = (typeof entry === 'number') ? [] : (entry.mutes || []);
+  return mutes.includes(song.channelRoles[chIdx]);
+}
+
+// ============================================================================
+// TRACKER ENGINE
+// ============================================================================
+
+let bpm = 125;
+let isPlaying = false;
+let currentRow = 0;
+let nextRowTime = 0;
+let schedulerTimer = null;
+
+let loopEnabled = false;
+let loopStart = 0;
+let loopEnd = 63;
+
+function getRowDuration() {
+  return (60 / bpm) * (6 / 24);
+}
+
+function scheduleRow(row, time) {
+  const pattern = getCurrentPattern();
+  const rowData = pattern.data[row];
+  
+  for (let ch = 0; ch < 4; ch++) {
+    if (isRoleMuted(ch)) continue;
+    const cell = rowData[ch];
+    if (cell && cell.sample) {
+      playSample(cell.sample, time, cell, ch);
+    }
+  }
+}
+
+function scheduler() {
+  if (!ensureAudioRunning()) return;
+  
+  const now = audioCtx.currentTime;
+  
+  while (nextRowTime < now + 0.1) {
+    scheduleRow(currentRow, nextRowTime);
+    updatePlaybackUI(currentRow);
+    
+    nextRowTime += getRowDuration();
+    currentRow++;
+    
+    const pattern = getCurrentPattern();
+    
+    if (loopEnabled && currentRow > loopEnd) {
+      currentRow = loopStart;
+    } else if (currentRow >= pattern.rows) {
+      currentRow = 0;
+      song.currentPosition = (song.currentPosition + 1) % song.arrangement.length;
+    }
+  }
+}
+
+function startPlayback() {
+  if (!ensureAudioRunning()) {
+    alert('Tap screen first');
+    return;
+  }
+  if (isPlaying) return;
+  
+  isPlaying = true;
+  currentRow = loopEnabled ? loopStart : 0;
+  nextRowTime = audioCtx.currentTime + 0.01;
+  schedulerTimer = setInterval(scheduler, 25);
+}
+
+function stopPlayback() {
+  isPlaying = false;
+  if (schedulerTimer) clearInterval(schedulerTimer);
+  currentRow = 0;
+  song.currentPosition = 0;
+  updatePlaybackUI(-1);
+}
+
+function toggleLoop() {
+  loopEnabled = !loopEnabled;
+  const btn = document.getElementById('loop-btn');
+  btn.classList.toggle('loop-active', loopEnabled);
+  btn.textContent = loopEnabled ? 'LOOP ON' : 'LOOP';
+  if (currentViewMode === 'pattern') renderPattern(getCurrentPattern());
+}
+
+function setLoopStart() {
+  if (selectedRow < 0) return;
+  loopStart = selectedRow;
+  if (loopEnd <= loopStart) loopEnd = Math.min(loopStart + 15, 63);
+  renderPattern(getCurrentPattern());
+}
+
+function setLoopEnd() {
+  if (selectedRow < 0) return;
+  loopEnd = selectedRow;
+  if (loopStart >= loopEnd) loopStart = Math.max(loopEnd - 15, 0);
+  renderPattern(getCurrentPattern());
+}
+
+// ============================================================================
+// VIEW MANAGEMENT
+// ============================================================================
+
+let currentViewMode = 'pattern';
+let currentPatternIndex = 0;
+
+function switchView(mode) {
+  currentViewMode = mode;
+  const pv = document.getElementById('pattern-view');
+  const av = document.getElementById('arrangement-view');
+  
+  if (mode === 'arrangement') {
+    pv.classList.remove('visible');
+    av.classList.add('visible');
+    document.getElementById('view-toggle-btn').textContent = 'PATTERN';
+    document.getElementById('view-mode').textContent = 'ARRANGE';
+    renderArrangement();
+  } else {
+    pv.classList.add('visible');
+    av.classList.remove('visible');
+    document.getElementById('view-toggle-btn').textContent = 'ARRANGE';
+    document.getElementById('view-mode').textContent = 'PATTERN';
+    document.getElementById('back-to-arrange').style.display = 'inline-block';
+    renderPattern(getCurrentPattern());
+  }
+}
+
+function openPatternFromArrangement(pos) {
+  song.currentPosition = pos;
+  const entry = song.arrangement[pos];
+  currentPatternIndex = typeof entry === 'number' ? entry : entry.pattern;
+  switchView('pattern');
+}
+
+// ============================================================================
+// EDITING
+// ============================================================================
+
+let selectedRow = -1;
+let selectedChannel = -1;
+let selectedArrangementPos = -1;
+
+function selectCell(row, ch) {
+  selectedRow = row;
+  selectedChannel = ch;
+  document.querySelectorAll('.channel').forEach(el => el.classList.remove('selected'));
+  const target = document.querySelector(`[data-row="${row}"] [data-ch="${ch}"]`);
+  if (target) target.classList.add('selected');
+  document.getElementById('edit-panel').classList.add('visible');
+  document.getElementById('edit-row').textContent = row.toString().padStart(2, '0');
+  document.getElementById('edit-ch').textContent = (ch + 1);
+}
+
+function setSample(sample) {
+  if (selectedRow < 0 || selectedChannel < 0) return;
+  const pattern = getCurrentPattern();
+  
+  if (sample === 'clear') {
+    pattern.data[selectedRow][selectedChannel] = null;
+  } else {
+    const existing = pattern.data[selectedRow][selectedChannel] || {};
+    pattern.data[selectedRow][selectedChannel] = {
+      note: 'C-4',
+      sample: sample,
+      volume: existing.volume || 1.0,
+      effects: existing.effects || []
+    };
+  }
+  renderPattern(pattern);
+}
+
+function testCurrentSample() {
+  if (!ensureAudioRunning()) return;
+  if (selectedRow < 0 || selectedChannel < 0) return;
+  const pattern = getCurrentPattern();
+  const cell = pattern.data[selectedRow][selectedChannel];
+  if (cell && cell.sample) {
+    playSample(cell.sample, audioCtx.currentTime, cell, selectedChannel);
+  }
+}
+
+function openEffectsModal() {
+  if (selectedRow < 0 || selectedChannel < 0) return;
+  document.getElementById('effects-modal').classList.add('visible');
+  renderEffectsStack();
+}
+
+function closeEffectsModal() {
+  document.getElementById('effects-modal').classList.remove('visible');
+  renderPattern(getCurrentPattern());
+}
+
+function renderEffectsStack() {
+  const pattern = getCurrentPattern();
+  const cell = pattern.data[selectedRow][selectedChannel];
+  const effects = cell?.effects || [];
+  const stack = document.getElementById('effects-stack');
+  
+  if (effects.length === 0) {
+    stack.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">No effects</div>';
+    return;
+  }
+  
+  stack.innerHTML = '';
+  effects.forEach((fx, idx) => {
+    const slot = document.createElement('div');
+    slot.className = 'effect-slot active';
+    slot.innerHTML = `<div style="color: #0a0;">EFFECT ${idx + 1}: ${fx.type.toUpperCase()}</div>`;
+    stack.appendChild(slot);
+  });
+}
+
+function addEffectSlot() {
+  if (selectedRow < 0 || selectedChannel < 0) return;
+  const pattern = getCurrentPattern();
+  const cell = pattern.data[selectedRow][selectedChannel];
+  if (!cell) return;
+  if (!cell.effects) cell.effects = [];
+  cell.effects.push({ type: 'vol', param: 128 });
+  renderEffectsStack();
+}
+
+function selectArrangementPosition(pos) {
+  selectedArrangementPos = pos;
+  document.getElementById('arrangement-menu').classList.add('visible');
+  document.getElementById('arrange-pos').textContent = pos.toString().padStart(2, '0');
+}
+
+function assignPattern(idx) {
+  if (selectedArrangementPos < 0) return;
+  const entry = song.arrangement[selectedArrangementPos];
+  const mutes = (typeof entry === 'number') ? [] : (entry.mutes || []);
+  song.arrangement[selectedArrangementPos] = { pattern: idx, mutes: mutes };
+  renderArrangement();
+}
+
+function toggleRoleMute(role) {
+  if (selectedArrangementPos < 0) return;
+  const entry = song.arrangement[selectedArrangementPos];
+  let pidx = 0;
+  let mutes = [];
+  
+  if (typeof entry === 'number') {
+    pidx = entry;
+  } else {
+    pidx = entry.pattern;
+    mutes = entry.mutes || [];
+  }
+  
+  const i = mutes.indexOf(role);
+  if (i >= 0) mutes.splice(i, 1);
+  else mutes.push(role);
+  
+  song.arrangement[selectedArrangementPos] = { pattern: pidx, mutes: mutes };
+  renderArrangement();
+}
+
+// ============================================================================
+// UI RENDERING
+// ============================================================================
+
+let lastPlayingRow = -1;
+
+function renderPattern(pattern) {
+  const grid = document.getElementById('pattern-grid');
+  const title = document.getElementById('pattern-title');
+  const header = document.getElementById('pattern-header');
+  
+  const meta = song.patternMeta[currentPatternIndex] || { name: "PTN", energy: 0 };
+  title.textContent = `${meta.name} [${currentPatternIndex.toString().padStart(2, '0')}]`;
+  
+  let rolesDiv = header.querySelector('.channel-roles');
+  if (!rolesDiv) {
+    rolesDiv = document.createElement('div');
+    rolesDiv.className = 'channel-roles';
+    header.appendChild(rolesDiv);
+  }
+  
+  rolesDiv.innerHTML = '';
+  song.channelRoles.forEach(role => {
+    const label = document.createElement('div');
+    label.className = 'role-label';
+    label.textContent = role;
+    rolesDiv.appendChild(label);
+  });
+  
+  grid.innerHTML = '';
+  
+  for (let r = 0; r < pattern.rows; r++) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'row';
+    rowEl.dataset.row = r;
+    
+    if (loopEnabled) {
+      if (r === loopStart) rowEl.classList.add('loop-start');
+      if (r === loopEnd) rowEl.classList.add('loop-end');
+      if (r >= loopStart && r <= loopEnd) rowEl.classList.add('in-loop');
+    }
+    
+    const numEl = document.createElement('div');
+    numEl.className = 'row-num';
+    numEl.textContent = r.toString().padStart(2, '0');
+    rowEl.appendChild(numEl);
+    
+    for (let c = 0; c < 4; c++) {
+      const chEl = document.createElement('div');
+      chEl.className = 'channel';
+      chEl.dataset.ch = c;
+      
+      const cell = pattern.data[r][c];
+      const noteDiv = document.createElement('div');
+      noteDiv.className = 'cell-note';
+      
+      if (cell && cell.note) {
+        noteDiv.textContent = cell.sample.substring(0, 3).toUpperCase();
+        chEl.classList.add('note');
+        
+        if (cell.effects && cell.effects.length > 0) {
+          const fxDiv = document.createElement('div');
+          fxDiv.className = 'cell-fx';
+          fxDiv.textContent = `FX:${cell.effects.length}`;
+          chEl.appendChild(fxDiv);
+        }
+      } else {
+        noteDiv.textContent = '---';
+        chEl.classList.add('empty');
+      }
+      
+      chEl.appendChild(noteDiv);
+      
+      if (r === selectedRow && c === selectedChannel) {
+        chEl.classList.add('selected');
+      }
+      
+      chEl.addEventListener('click', () => selectCell(r, c));
+      rowEl.appendChild(chEl);
+    }
+    
+    grid.appendChild(rowEl);
+  }
+}
+
+function renderArrangement() {
+  const grid = document.getElementById('arrangement-grid');
+  grid.innerHTML = '';
+  
+  song.arrangement.forEach((entry, pos) => {
+    const pidx = typeof entry === 'number' ? entry : entry.pattern;
+    const mutes = (typeof entry === 'number') ? [] : (entry.mutes || []);
+    const meta = song.patternMeta[pidx] || { name: "PTN", energy: 0 };
+    
+    const rowEl = document.createElement('div');
+    rowEl.className = 'arrangement-row';
+    
+    const numEl = document.createElement('div');
+    numEl.className = 'arrangement-num';
+    numEl.textContent = pos.toString().padStart(2, '0');
+    rowEl.appendChild(numEl);
+    
+    const patternEl = document.createElement('div');
+    patternEl.className = 'arrangement-pattern';
+    
+    if (isPlaying && pos === song.currentPosition) {
+      patternEl.classList.add('playing');
+    }
+    
+    const labelEl = document.createElement('div');
+    labelEl.className = 'pattern-label';
+    labelEl.textContent = meta.name;
+    patternEl.appendChild(labelEl);
+    
+    const energyEl = document.createElement('div');
+    energyEl.className = 'pattern-energy';
+    energyEl.textContent = '★'.repeat(meta.energy);
+    patternEl.appendChild(energyEl);
+    
+    const numText = document.createElement('div');
+    numText.textContent = pidx.toString().padStart(2, '0');
+    patternEl.appendChild(numText);
+    
+    if (mutes.length > 0) {
+      const mutesEl = document.createElement('div');
+      mutesEl.className = 'pattern-mutes';
+      mutesEl.textContent = `🔇${mutes.length}`;
+      patternEl.appendChild(mutesEl);
+    }
+    
+    patternEl.addEventListener('click', () => openPatternFromArrangement(pos));
+    
+    let pressTimer;
+    patternEl.addEventListener('touchstart', () => {
+      pressTimer = setTimeout(() => selectArrangementPosition(pos), 500);
+    });
+    patternEl.addEventListener('touchend', () => clearTimeout(pressTimer));
+    
+    rowEl.appendChild(patternEl);
+    grid.appendChild(rowEl);
+  });
+}
+
+function updatePlaybackUI(row) {
+  document.getElementById('song-pos').textContent = song.currentPosition.toString().padStart(2, '0');
+  document.getElementById('row').textContent = row >= 0 ? row.toString().padStart(2, '0') : '--';
+  
+  if (currentViewMode === 'arrangement') {
+    renderArrangement();
+    return;
+  }
+  
+  if (lastPlayingRow >= 0) {
+    const prev = document.querySelector(`[data-row="${lastPlayingRow}"]`);
+    if (prev) prev.classList.remove('playing');
+  }
+  
+  if (row >= 0) {
+    const curr = document.querySelector(`[data-row="${row}"]`);
+    if (curr) {
+      curr.classList.add('playing');
+      if (row % 4 === 0) {
+        curr.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }
+  }
+  
+  lastPlayingRow = row;
+}
+
+// ============================================================================
+// INIT
+// ============================================================================
+
+function initLEDMeter() {
+  const container = document.getElementById('led-meter');
+  if (!container) {
+    console.warn('[LED] Container not found');
+    return;
+  }
+  
+  container.innerHTML = '';
+  ledElements = [];
+  
+  for (let i = 0; i < LED_COUNT; i++) {
+    const led = document.createElement('div');
+    led.className = 'led';
+    
+    if (i < LED_COUNT - 3) {
+      led.dataset.color = 'green';
+    } else if (i < LED_COUNT - 1) {
+      led.dataset.color = 'yellow';
+    } else {
+      led.dataset.color = 'red';
+    }
+    
+    container.appendChild(led);
+    ledElements.push(led);
+  }
+  
+  console.log('[LED] Meter initialized with', LED_COUNT, 'LEDs');
+  drawMeter();
+}
+
+initAudio();
+initSong();
+initLEDMeter();
+renderPattern(getCurrentPattern());
+
+// Auto-resume and generate drums
+if (audioCtx.state === 'suspended') {
+  audioCtx.resume().then(() => {
+    generateAllDrums();
+  });
+} else {
+  generateAllDrums();
+}
+
+// First interaction handler
+const firstTouch = () => {
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().then(() => {
+      if (!samples.kick) generateAllDrums();
+    });
+  }
+};
+document.addEventListener('click', firstTouch, { once: true });
+document.addEventListener('touchstart', firstTouch, { once: true });
+
+// Event listeners
+document.getElementById('play-btn').addEventListener('click', () => {
+  ensureAudioRunning();
+  startPlayback();
+});
+
+document.getElementById('stop-btn').addEventListener('click', stopPlayback);
+document.getElementById('loop-btn').addEventListener('click', toggleLoop);
+document.getElementById('view-toggle-btn').addEventListener('click', () => {
+  switchView(currentViewMode === 'pattern' ? 'arrangement' : 'pattern');
+});
+document.getElementById('back-to-arrange').addEventListener('click', () => switchView('arrangement'));
+
+document.getElementById('gen-drums-btn').addEventListener('click', async () => {
+  await generateAllDrums();
+  alert('Drums regenerated');
+});
+
+document.getElementById('record-btn').addEventListener('click', startRecording);
+document.getElementById('stop-record-btn').addEventListener('click', stopRecording);
+document.getElementById('cancel-record-btn').addEventListener('click', cancelRecording);
+
+document.getElementById('load-sample').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!ensureAudioRunning()) {
+    alert('Audio not ready');
+    e.target.value = '';
+    return;
+  }
+  try {
+    const name = await loadWAV(file);
+    alert(`Loaded: ${name}`);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+  e.target.value = '';
+});
+
+document.querySelectorAll('.sample-btn').forEach(btn => {
+  btn.addEventListener('click', () => setSample(btn.dataset.sample));
+});
+
+document.getElementById('open-effects-modal').addEventListener('click', openEffectsModal);
+document.getElementById('close-effects-modal').addEventListener('click', closeEffectsModal);
+document.getElementById('add-effect-slot').addEventListener('click', addEffectSlot);
+
+document.getElementById('test-sample').addEventListener('click', testCurrentSample);
+document.getElementById('set-loop-start').addEventListener('click', setLoopStart);
+document.getElementById('set-loop-end').addEventListener('click', setLoopEnd);
+
+document.getElementById('close-edit').addEventListener('click', () => {
+  document.getElementById('edit-panel').classList.remove('visible');
+  selectedRow = -1;
+  selectedChannel = -1;
+  document.querySelectorAll('.channel').forEach(el => el.classList.remove('selected'));
+});
+
+document.querySelectorAll('.assign-pattern-btn').forEach(btn => {
+  btn.addEventListener('click', () => assignPattern(parseInt(btn.dataset.pattern)));
+});
+
+document.querySelectorAll('.mute-role-btn').forEach(btn => {
+  btn.addEventListener('click', () => toggleRoleMute(btn.dataset.role));
+});
+
+document.getElementById('macro-repeat').addEventListener('click', macroRepeatBlock);
+document.getElementById('macro-pause-full').addEventListener('click', () => insertPause(selectedArrangementPos, 'full'));
+document.getElementById('macro-pause-nokick').addEventListener('click', () => insertPause(selectedArrangementPos, 'no-kick'));
+document.getElementById('macro-drop').addEventListener('click', macroDropBuilder);
+
+document.getElementById('duplicate-pos').addEventListener('click', duplicatePosition);
+document.getElementById('clear-pos').addEventListener('click', clearPosition);
+document.getElementById('insert-pos').addEventListener('click', insertPosition);
+document.getElementById('delete-pos').addEventListener('click', deletePosition);
+
+document.getElementById('close-arrange-menu').addEventListener('click', () => {
+  document.getElementById('arrangement-menu').classList.remove('visible');
+  selectedArrangementPos = -1;
+});
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js");
+}
+</script>
+
+</body>
+</html>

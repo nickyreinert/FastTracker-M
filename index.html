@@ -765,6 +765,8 @@ const roleGains = {
   'PAD': 0.4
 };
 
+const LED_COUNT = 6;
+
 
 
 document.body.addEventListener("touchstart", () => {
@@ -1806,6 +1808,20 @@ function updatePlaybackUI(row) {
 // ============================================================================
 // INIT
 // ============================================================================
+
+function drawMeter() {
+  if (analyser && ledElements) {
+    analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < 8; i++) sum += dataArray[i];
+    const level = sum / 8 / 255;
+    const active = Math.round(level * ledElements.length);
+    ledElements.forEach((l, i) =>
+      l.classList.toggle('on', i < active)
+    );
+  }
+  requestAnimationFrame(drawMeter);
+}
 
 function initLEDMeter() {
   const container = document.getElementById('led-meter');

@@ -767,8 +767,6 @@ const roleGains = {
 
 const LED_COUNT = 6;
 
-
-
 document.body.addEventListener("touchstart", () => {
   if (audioCtx && audioCtx.state === "suspended") {
     audioCtx.resume();
@@ -792,7 +790,7 @@ function initAudio() {
   masterGain.connect(analyser);
   analyser.connect(audioCtx.destination);
   
-  initLedMeter();
+  // initLedMeter(); // Replaced by initLEDMeter
 
   console.log('[Audio] Init:', audioCtx.state);
 }

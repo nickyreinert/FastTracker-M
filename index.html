@@ -1655,6 +1655,32 @@ function insertPause(pos, type) {
   renderArrangement();
 }
 
+function duplicatePosition() {
+  if (selectedArrangementPos < 0) return;
+  const entry = song.arrangement[selectedArrangementPos];
+  const copy = typeof entry === 'number' ? entry : { pattern: entry.pattern, mutes: [...entry.mutes] };
+  song.arrangement.splice(selectedArrangementPos + 1, 0, copy);
+  renderArrangement();
+}
+
+function clearPosition() {
+  if (selectedArrangementPos < 0) return;
+  song.arrangement[selectedArrangementPos] = 0; // or some default
+  renderArrangement();
+}
+
+function insertPosition() {
+  if (selectedArrangementPos < 0) return;
+  song.arrangement.splice(selectedArrangementPos + 1, 0, 0);
+  renderArrangement();
+}
+
+function deletePosition() {
+  if (selectedArrangementPos < 0) return;
+  song.arrangement.splice(selectedArrangementPos, 1);
+  renderArrangement();
+}
+
 // ============================================================================
 // UI RENDERING
 // ============================================================================

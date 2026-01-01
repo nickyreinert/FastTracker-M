@@ -753,6 +753,7 @@ let audioCtx = null;
 let masterGain = null;
 let analyser = null;
 let dataArray = null;
+let ledElements = null;
 
 const samples = {};
 const importedSamples = [];
@@ -1630,6 +1631,27 @@ function toggleRoleMute(role) {
   else mutes.push(role);
   
   song.arrangement[selectedArrangementPos] = { pattern: pidx, mutes: mutes };
+  renderArrangement();
+}
+
+function macroRepeatBlock() {
+  if (selectedArrangementPos < 0) return;
+  const entry = song.arrangement[selectedArrangementPos];
+  const copy = typeof entry === 'number' ? entry : { pattern: entry.pattern, mutes: [...entry.mutes] };
+  song.arrangement.splice(selectedArrangementPos + 1, 0, copy);
+  renderArrangement();
+}
+
+function macroDropBuilder() {
+  if (selectedArrangementPos >= 0) {
+    song.arrangement.splice(selectedArrangementPos, 1);
+    renderArrangement();
+  }
+}
+
+function insertPause(pos, type) {
+  if (pos < 0) return;
+  song.arrangement.splice(pos + 1, 0, { pause: type });
   renderArrangement();
 }
 

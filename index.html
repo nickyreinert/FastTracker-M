@@ -1581,10 +1581,100 @@ function renderEffectsStack() {
   }
   
   stack.innerHTML = '';
+  const effectTypes = ['vol', 'slide', 'arp', 'vibrato', 'cut', 'retrig', 'reverse'];
+  
   effects.forEach((fx, idx) => {
     const slot = document.createElement('div');
     slot.className = 'effect-slot active';
-    slot.innerHTML = `<div style="color: #0a0;">EFFECT ${idx + 1}: ${fx.type.toUpperCase()}</div>`;
+    
+    const header = document.createElement('div');
+    header.className = 'effect-slot-header';
+    
+    const label = document.createElement('span');
+    label.className = 'effect-slot-label';
+    label.textContent = `EFFECT ${idx + 1}`;
+    header.appendChild(label);
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'effect-slot-remove';
+    removeBtn.textContent = 'REMOVE';
+    removeBtn.addEventListener('click', () => {
+      effects.splice(idx, 1);
+      renderEffectsStack();
+    });
+    header.appendChild(removeBtn);
+    
+    slot.appendChild(header);
+    
+    // Type select
+    const typeRow = document.createElement('div');
+    typeRow.style.display = 'flex';
+    typeRow.style.alignItems = 'center';
+    typeRow.style.gap = '8px';
+    typeRow.style.marginBottom = '8px';
+    
+    const typeLabel = document.createElement('span');
+    typeLabel.textContent = 'Type:';
+    typeLabel.style.color = '#0a0';
+    typeLabel.style.fontSize = '12px';
+    typeRow.appendChild(typeLabel);
+    
+    const typeSelect = document.createElement('select');
+    typeSelect.style.flex = '1';
+    typeSelect.style.background = '#222';
+    typeSelect.style.color = '#0ff';
+    typeSelect.style.border = '1px solid #444';
+    typeSelect.style.padding = '4px';
+    typeSelect.style.fontSize = '12px';
+    effectTypes.forEach(type => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = type.toUpperCase();
+      if (fx.type === type) option.selected = true;
+      typeSelect.appendChild(option);
+    });
+    typeSelect.addEventListener('change', () => {
+      fx.type = typeSelect.value;
+    });
+    typeRow.appendChild(typeSelect);
+    
+    slot.appendChild(typeRow);
+    
+    // Param slider (only if not reverse, but for simplicity, always show)
+    const paramRow = document.createElement('div');
+    paramRow.style.display = 'flex';
+    paramRow.style.alignItems = 'center';
+    paramRow.style.gap = '8px';
+    
+    const paramLabel = document.createElement('span');
+    paramLabel.textContent = 'Param:';
+    paramLabel.style.color = '#0a0';
+    paramLabel.style.fontSize = '12px';
+    paramRow.appendChild(paramLabel);
+    
+    const paramInput = document.createElement('input');
+    paramInput.type = 'range';
+    paramInput.min = '0';
+    paramInput.max = '255';
+    paramInput.value = fx.param || 128;
+    paramInput.style.flex = '1';
+    paramInput.addEventListener('input', () => {
+      fx.param = parseInt(paramInput.value);
+    });
+    paramRow.appendChild(paramInput);
+    
+    const paramValue = document.createElement('span');
+    paramValue.textContent = fx.param || 128;
+    paramValue.style.color = '#0ff';
+    paramValue.style.fontSize = '12px';
+    paramValue.style.minWidth = '30px';
+    paramInput.addEventListener('input', () => {
+      paramValue.textContent = paramInput.value;
+    });
+    paramRow.appendChild(paramValue);
+    
+    slot.appendChild(paramRow);
+    
     stack.appendChild(slot);
   });
 }
